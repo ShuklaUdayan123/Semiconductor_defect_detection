@@ -1,0 +1,11 @@
+# Data handling & EDA
+kagglehub
+pandas
+numpy
+matplotlib
+jupyter
+
+# Computer Vision & AI Tools
+opencv-python
+ultralytics
+scikit-learn

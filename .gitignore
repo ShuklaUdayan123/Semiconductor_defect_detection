@@ -1,0 +1,19 @@
+# Virtual Environment
+venv/
+env/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Datasets & Output (CRITICAL)
+data/
+*.pkl
+*.npy
+*.pt
+
+# OS generated files
+.DS_Store
+Thumbs.db
