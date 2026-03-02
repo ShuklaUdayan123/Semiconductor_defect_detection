@@ -38,10 +38,9 @@ def process_data():
     print(f"Found {len(defective_wafers)} defective wafers.")
     print("Starting conversion on a test batch of 500 wafers...")
     
-    # We are using .head(500) so we can test the pipeline quickly! 
-    # (We can remove it later to process all 25,000+ defects)
+#processing the whole set now
     count = 0
-    for index, row in defective_wafers.head(500).iterrows():
+    for index, row in defective_wafers.iterrows():
         wafer_map = row['waferMap']
         defect_class_text = row['failure_class']
         
