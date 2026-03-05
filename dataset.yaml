@@ -1,0 +1,19 @@
+# YOLOv8 Dataset Configuration File
+
+# The base path to your dataset folder
+path: data/yolo_dataset
+
+# The subfolders for training and validation images
+train: images/train
+val: images/val
+
+# The 8 defect classes we mapped earlier
+names:
+  0: Center
+  1: Donut
+  2: Edge-Loc
+  3: Edge-Ring
+  4: Loc
+  5: Random
+  6: Scratch
+  7: Near-full
