@@ -47,4 +47,4 @@ The model achieved phenomenal results on the blind 5,104-image validation set:
 * **Version Control:** Git
 
 ---
-*Designed and engineered by [Your Name]. Check out more of my applied data and AI work on my [Portfolio Website](Link to your Batman portfolio).*
+*Designed and engineered by Udayan Shashank Shukla.

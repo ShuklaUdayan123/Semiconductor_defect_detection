@@ -3,16 +3,16 @@ import json
 import sqlite3
 import random
 import cv2
+import time
 from datetime import datetime
 from ultralytics import YOLO
 
 def setup_database():
-    # Connect to a local SQLite database inside the middleware folder
+    os.makedirs('middleware', exist_ok=True)
     db_path = os.path.join('middleware', 'wafer_control.db')
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Create the SQL table for our robotic logs
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS wafer_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,34 +28,30 @@ def setup_database():
     conn.commit()
     return conn
 
-def run_robotic_simulation():
-    print("Initializing Robotic Control Middleware...")
-    conn = setup_database()
+def run_single_scan(conn, model):
     cursor = conn.cursor()
-
-    # Load your custom-trained brain
-    model_path = 'runs/detect/runs/wafer_defects/yolov8_run1/weights/best.pt'
-    model = YOLO(model_path)
 
     # Grab a random wafer from the validation set
     val_dir = 'data/yolo_dataset/images/val'
     val_images = [f for f in os.listdir(val_dir) if f.endswith('.jpg')]
+    
+    if not val_images:
+        print("Error: No images found in validation directory.")
+        return
+
     test_img = os.path.join(val_dir, random.choice(val_images))
     wafer_id = os.path.basename(test_img).split('.')[0]
 
-    print(f"\nScanning {wafer_id} on the assembly line...")
     # Run the prediction
     results = model.predict(source=test_img, conf=0.25, verbose=False)
     boxes = results[0].boxes
 
-    # --- THE LOGIC GATES ---
     if len(boxes) > 0:
         box = boxes[0]
         class_id = int(box.cls[0].item())
         defect_type = model.names[class_id]
         confidence = round(box.conf[0].item(), 2)
         
-        # PHASE 2: EXTRACT THE ROI
         x1, y1, x2, y2 = [int(x) for x in box.xyxy[0].tolist()] 
         coords = [x1, y1, x2, y2]
         
@@ -66,12 +62,9 @@ def run_robotic_simulation():
         if cropped_roi.size > 0:
             roi_filename = f"Output_ROI/{wafer_id}_ROI_{defect_type}.jpg"
             cv2.imwrite(roi_filename, cropped_roi)
-            print(f"Successfully cropped {defect_type} ROI and saved to {roi_filename}")
 
-        # PHASE 3: SIMULATE ROBOTIC COMMAND
         status = "FAIL"
         action = "ROUTE_TO_SCRAP" if defect_type in ["Center", "Near-full"] else "MOVE_TO_MICRO_STAGE"
-        
     else:
         status = "PASS"
         defect_type = "None"
@@ -79,20 +72,7 @@ def run_robotic_simulation():
         confidence = 1.0
         coords = []
 
-    # Package the JSON Payload
-    payload = {
-        "wafer_id": wafer_id,
-        "status": status,
-        "defect_type": defect_type,
-        "action": action,
-        "confidence": confidence,
-        "coordinates": coords
-    }
-
-    print("\nTRANSMITTING JSON PAYLOAD TO ROBOTIC ARM:")
-    print(json.dumps(payload, indent=4))
-
-    # Log it into the SQL Database
+    # Log to Database
     scan_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cursor.execute('''
         INSERT INTO wafer_logs (wafer_id, scan_time, status, defect_type, action, confidence, roi_coordinates)
@@ -100,8 +80,29 @@ def run_robotic_simulation():
     ''', (wafer_id, scan_time, status, defect_type, action, confidence, str(coords)))
     
     conn.commit()
-    conn.close()
-    print("\nData successfully logged to local SQL database (middleware/wafer_control.db).")
+    print(f"Processed {wafer_id}: {status} ({defect_type}) -> {action}")
 
 if __name__ == '__main__':
-    run_robotic_simulation()
+    print("Initializing Robotic Control Middleware...")
+    
+    # 1. Setup Resources Once
+    db_connection = setup_database()
+    model_path = 'runs/detect/runs/wafer_defects/yolov8_run1/weights/best.pt'
+    wafer_model = YOLO(model_path)
+
+    try:
+        # 2. Loop 10 Times
+        for i in range(1, 11):
+            print(f"\n--- Scanning Wafer {i}/10 ---")
+            run_single_scan(db_connection, wafer_model)
+            
+            # Optional: Small delay to simulate assembly line movement
+            time.sleep(0.5) 
+
+    except Exception as e:
+        print(f"An error occurred during simulation: {e}")
+        
+    finally:
+        # 3. Clean up
+        db_connection.close()
+        print("\nSimulation complete. Database connection closed.")
