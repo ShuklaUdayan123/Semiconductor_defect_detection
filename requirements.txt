@@ -9,3 +9,8 @@ jupyter
 opencv-python
 ultralytics
 scikit-learn
+
+# Web Application & AI Chatbot
+fastapi
+uvicorn[standard]
+google-genai
