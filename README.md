@@ -1,12 +1,13 @@
-# Semiconductor Wafer Defect Detection: End-to-End YOLOv8 Pipeline
+# Semiconductor Wafer Defect Detection: End-to-End AI Pipeline
 
 ## Project Overview
-This project is a complete, end-to-end Applied Computer Vision pipeline designed for the semiconductor manufacturing industry. It takes raw, legacy mathematical array data representing 25,000+ defective semiconductor wafers, engineers them into an AI-ready computer vision dataset, and trains a custom YOLOv8 object detection model to automatically identify and classify 8 distinct types of manufacturing defects.
+This project is a complete, end-to-end Applied AI pipeline designed for the semiconductor manufacturing industry. It takes raw mathematical array data representing defective semiconductor wafers, engineers them into an AI-ready computer vision dataset, trains a custom YOLOv8 object detection model, and feeds the results into a predictive material waste model and real-time dashboard.
 
-**Final Model Performance:** `0.962 mAP@50` (96.2% overall accuracy on unseen validation data).
+**Final YOLOv8 Model Performance:** `0.962 mAP@50` (96.2% overall accuracy on unseen validation data).
+**Predictive Waste Model Performance:** `R² = 0.9637` (Highly accurate material waste prediction).
 
 ## Business Value
-In semiconductor fabrication, identifying microscopic defects early in the manufacturing process saves millions in scrapped materials. This project automates quality control by transitioning from manual coordinate analysis to real-time, AI-driven visual defect detection.
+In semiconductor fabrication, identifying microscopic defects early in the manufacturing process saves millions in scrapped materials. This project automates quality control by transitioning from manual coordinate analysis to real-time, AI-driven visual defect detection, while simultaneously forecasting future material waste to optimize supply chain planning.
 
 ## The Technical Pipeline
 
@@ -25,26 +26,40 @@ In semiconductor fabrication, identifying microscopic defects early in the manuf
 * Mapped 8 specific manufacturing defect classes (Center, Donut, Edge-Loc, Edge-Ring, Loc, Random, Scratch, Near-full).
 
 ### Phase 4: Batch Inference & Evaluation (`src/batch_inference.py` & `src/model_eval.py`)
-* Deployed the custom-trained `best.pt` weights to run batch inference on 5,104 unseen validation images.
+* Deployed the custom-trained `best.pt` weights to run batch inference on unseen validation images.
 * Model successfully drew accurate bounding boxes and assigned confidence scores entirely autonomously.
 
+### Phase 5: Production Middleware, Predictive Modeling & Dashboard
+* **Robotic Scanner Simulation (`middleware/robot_controller.py`):** Operates on a massive hybrid dataset of **823,953 wafers** (Mixed-type + WM-811K datasets) with a realistic 95.5% pass rate. It automatically routes passed wafers and runs YOLOv8 inference on defective ones, logging everything into a centralized SQLite database (`wafer_control.db`).
+* **Material Waste Predictor (`middleware/material_predictor.py`):** A Random Forest Regressor trained on the historical scan database. It accurately predicts the average percentage of material wasted within defective wafers, allowing fabs to estimate future material needs.
+* **Real-time Dashboard (`middleware/dashboard.py`):** A **Plotly Dash** web application that visualizes historical defect rates, defect distributions, routing actions, and integrates interactive material forecasting inputs.
+
+## Upcoming Feature: LLM Troubleshooting Assistant (Planned)
+**Goal:** Integrate an intelligent Large Language Model (LLM) bot to assist fab engineers directly on the factory floor.
+* **Functionality:** When the dashboard flags a sudden spike in a specific defect type (e.g., "Edge-Ring" defects), the engineer can consult the LLM bot.
+* **Use Case:** The bot will analyze the defect trends, cross-reference historical manufacturing guidelines, and suggest potential root causes (such as misaligned etching tools or incorrect gas pressure), drastically reducing troubleshooting and downtime.
+*(Note: This feature is currently in the design phase and not yet implemented).*
+
 ## Performance Metrics
-The model achieved phenomenal results on the blind 5,104-image validation set:
+The YOLOv8 model achieved phenomenal results on the blind validation set:
 
 | Metric | Score | Note |
 | :--- | :--- | :--- |
 | **mAP50 (All Classes)** | **96.2%** | Overall model accuracy at a 50% confidence threshold. |
 | **Recall** | **93.1%** | The model successfully located 93.1% of all physical defects. |
 | **Edge-Ring (mAP50)** | **99.4%** | Near-flawless detection of Edge-Ring anomalies. |
-| **Near-full (mAP50)** | **94.4%** | Highly accurate even on severely underrepresented edge-case classes. |
 
-*(Note: Visual evidence of bounding box predictions, Precision-Recall curves, and Confusion Matrices can be found in the `runs/` directory).*
+The Random Forest Material Waste Predictor achieved:
+| Metric | Score | Note |
+| :--- | :--- | :--- |
+| **R² Score** | **0.9637** | Excellent correlation on predictive targets. |
+| **MAE** | **0.09%** | Average prediction error is less than one-tenth of a percent. |
 
 ## Tech Stack
 * **Languages:** Python
 * **Computer Vision:** Ultralytics (YOLOv8), OpenCV (`cv2`)
-* **Data Engineering:** Pandas, NumPy, Scikit-learn
-* **Version Control:** Git
+* **Machine Learning & Data:** Pandas, NumPy, Scikit-learn, SQLite
+* **Web UI & Visualization:** Plotly, Dash
 
 ---
-*Designed and engineered by Udayan Shashank Shukla.
+*Designed and engineered by Udayan Shashank Shukla.*
